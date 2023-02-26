@@ -1,0 +1,102 @@
+Q1)
+{
+  search(query: "stars:>0 sort:created-asc", type: REPOSITORY, first: 100) {
+    edges {
+      node {
+        ... on Repository {
+          name
+          createdAt
+          stargazerCount
+          url
+        }
+      }
+    }
+  }
+}
+
+Q2)
+{
+  search(query: "stars:>10000 sort:stars-desc", type: REPOSITORY, first: 100) {
+    edges {
+      node {
+        ... on Repository {
+          name
+          url
+          pullRequests {
+            totalCount
+          }
+        }
+      }
+    }
+  }
+}
+
+Q3)
+{
+  search(query: "stars:>10000 sort:stars-desc", type: REPOSITORY, first: 100) {
+    edges {
+      node {
+        ... on Repository {
+          name
+          url
+          releases(first: 10) {
+            totalCount
+          }
+        }
+      }
+    }
+  }
+}
+
+Q4)
+{
+  search(query: "stars:>10000 sort:stars-desc", type: REPOSITORY, first: 100) {
+    edges {
+      node {
+        ... on Repository {
+          name
+          url
+          updatedAt
+          pushedAt
+        }
+      }
+    }
+  }
+}
+
+Q5)
+{
+  search(query: "stars:>10000 sort:stars-desc", type: REPOSITORY, first: 100) {
+    edges {
+      node {
+        ... on Repository {
+          name
+          url
+          primaryLanguage {
+            name
+          }
+        }
+      }
+    }
+  }
+}
+
+Q6)
+{
+  search(query: "stars:>10000 sort:stars-desc", type: REPOSITORY, first: 100) {
+    edges {
+      node {
+        ... on Repository {
+          name
+          url
+          issues(states: OPEN) {
+            totalCount
+          }
+          issues(states: CLOSED) {
+            totalCount
+          }
+        }
+      }
+    }
+  }
+}
