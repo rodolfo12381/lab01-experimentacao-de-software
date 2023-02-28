@@ -37,7 +37,7 @@ async function listaRepositorios(queryString) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer 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`,
+        Authorization: `Bearer SEU-TOKEN`,
       },
       body: JSON.stringify({ query, variables }),
     });
