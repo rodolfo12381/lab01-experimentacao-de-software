@@ -1,140 +1,66 @@
-const express = require("express");
-const app = express();
-const bodyParser = require("body-parser");
+const fetch = require('node-fetch');
+const createCsvWriter = require('csv-writer').createObjectCsvWriter;
 
-app.use(bodyParser.json());
-
-const { GraphQLClient } = require("graphql-request");
-const endpoint = "https://api.github.com/graphql";
-const token = "";
-
-
-
-const graphQLClient = new GraphQLClient(endpoint, {
-  headers: {
-    authorization: `Bearer ${token}`,
-  },
-});
-
-app.post("/query", (req, res) => {
-
-    let query = ''
-
-    switch (req.body.query) {
-
-    case "1":
-        query = `{
-            search(query: "stars:>0 sort:created-asc", type: REPOSITORY, first: 100) {
-              edges {
-                node {
-                  ... on Repository {
-                    name
-                    createdAt
-                    stargazerCount
-                    url
-                  }
-                }
-              }
-            }
-          }`
-      break;
-    case "2":
-        query = `{
-            search(query: "stars:>10000 sort:stars-desc", type: REPOSITORY, first: 100) {
-              edges {
-                node {
-                  ... on Repository {
-                    name
-                    url
-                    pullRequests {
-                      totalCount
-                    }
-                  }
-                }
-              }
-            }
-          }`
-      break;
-
-    case "3": 
-        query = `{
-            search(query: "stars:>10000 sort:stars-desc", type: REPOSITORY, first: 10) {
-              edges {
-                node {
-                  ... on Repository {
-                    name
-                    url
-                    releases(first: 10) {
-                      totalCount
-                    }
-                  }
-                }
-              }
-            }
-          }`
-      break;
-    case "4":
-        query = `{
-            search(query: "stars:>10000 sort:stars-desc", type: REPOSITORY, first: 100) {
-              edges {
-                node {
-                  ... on Repository {
-                    name
-                    url
-                    updatedAt
-                    pushedAt
-                  }
-                }
-              }
-            }
-          }`
-      break;
-    case "5":
-        query = `{
-            search(query: "stars:>10000 sort:stars-desc", type: REPOSITORY, first: 100) {
-              edges {
-                node {
-                  ... on Repository {
-                    name
-                    url
-                    primaryLanguage {
-                      name
-                    }
-                  }
-                }
-              }
-            }
-          }`
-      break;
-    case "6":
-        query = `{
-            search(query: "stars:>10000 sort:stars-desc", type: REPOSITORY, first: 10) {
-              edges {
-                node {
-                  ... on Repository {
-                    name
-                    url
-                    issues(first: 10) {
-                      edges {
-                        node {
-                          title
-                          state
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }`
-      break;
+const query = `
+  query($queryString: String!, $cursor: String) {
+    search(query: $queryString, type: REPOSITORY, first: 100, after: $cursor) {
+      pageInfo {
+        endCursor
+        hasNextPage
+      }
+      nodes {
+        ... on Repository {
+          nameWithOwner
+          url
+        }
+      }
+    }
   }
-  graphQLClient.request(query).then((data) => {
-        console.log(JSON.stringify(data))
-        res.json(JSON.stringify(data))
-  });
-});
+`;
 
-app.listen("8080", () => {
-  console.log("Servidor Rodando !");
+async function listaRepositorios(queryString) {
+  const csvWriter = createCsvWriter({
+    path: 'repositorios.csv',
+    header: [
+      { id: 'nameWithOwner', title: 'Nome do proprietário/repositório' },
+      { id: 'url', title: 'URL do repositório' },
+    ],
+  });
+
+  let hasNextPage = true;
+  let endCursor = null;
+  let repositorios = [];
+
+  while (hasNextPage && repositorios.length < 1000) {
+    const variables = { queryString, cursor: endCursor };
+    const resposta = await fetch('https://api.github.com/graphql', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer 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`,
+      },
+      body: JSON.stringify({ query, variables }),
+    });
+
+    const data = await resposta.json();
+    const { search } = data.data;
+    repositorios.push(...search.nodes);
+    hasNextPage = search.pageInfo.hasNextPage;
+    endCursor = search.pageInfo.endCursor;
+    console.log(repositorios)
+    console.log(repositorios.length)
+  }
+
+  const repositorioInfo = repositorios.map((repo) => ({
+    nameWithOwner: repo.nameWithOwner,
+    url: repo.url,
+    }));
+
+  await csvWriter.writeRecords(repositorioInfo);
+
+  return repositorios.slice(0, 1000);
+}
+
+listaRepositorios('stars:>10000 sort:stars-desc').then((repositorios) => {
+  console.log(`${repositorios.length} repositórios encontrados.`);
 });
